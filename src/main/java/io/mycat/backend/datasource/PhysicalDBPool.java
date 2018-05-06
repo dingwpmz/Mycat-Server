@@ -718,4 +718,8 @@ public class PhysicalDBPool {
 	public void setSchemas(String[] mySchemas) {
 		this.schemas = mySchemas;
 	}
+	
+	public int getSwitchMode() {
+		return dataHostConfig.getSwitchMode();
+	}
 }

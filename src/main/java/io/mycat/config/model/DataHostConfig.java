@@ -43,6 +43,11 @@ public class DataHostConfig {
 	public static final int DEFAULT_SWITCH_DS = 1;
 	public static final int SYN_STATUS_SWITCH_DS = 2;
 	public static final int CLUSTER_STATUS_SWITCH_DS = 3;
+	/** 切换模式：本地模式：默认*/
+	public static final int SWITCH_MODE_LOCAL = 0;
+	/** 切换模式：集群模式，基于ZK实现*/
+	public static final int SWITCH_MODE_CLUSTER_ZK = 1;
+	
     private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
     private static final Pattern patternCluster = Pattern.compile("\\s*show\\s+status\\s+like\\s+'wsrep%'",Pattern.CASE_INSENSITIVE);
 	private String name;
@@ -60,6 +65,7 @@ public class DataHostConfig {
 	private String connectionInitSql;
     private int slaveThreshold = -1;
 	private final int switchType;
+	private final int switchMode;
 	private String filters="mergeStat";
 	private long logTime=300000;
 	private boolean tempReadHostAvailable = false;  //如果写服务挂掉, 临时读服务是否继续可用
@@ -67,7 +73,7 @@ public class DataHostConfig {
 	private String slaveIDs;
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
-			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold, boolean tempReadHostAvailable) {
+			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType, int switchMode, int slaveThreshold, boolean tempReadHostAvailable) {
 		super();
 		this.name = name;
 		this.dbType = dbType;
@@ -75,6 +81,7 @@ public class DataHostConfig {
 		this.writeHosts = writeHosts;
 		this.readHosts = readHosts;
 		this.switchType=switchType;
+		this.switchMode = switchMode;
 		this.slaveThreshold=slaveThreshold;
 		this.tempReadHostAvailable = tempReadHostAvailable;
 		this.dataNodes = new HashSet<>();
@@ -94,6 +101,10 @@ public class DataHostConfig {
 
 	public int getSwitchType() {
 		return switchType;
+	}
+	
+	public int getSwitchMode() {
+		return switchMode;
 	}
 
 	public String getConnectionInitSql()

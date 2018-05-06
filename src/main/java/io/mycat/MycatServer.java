@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.mycat.buffer.NettyBufferPool;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
@@ -65,11 +64,14 @@ import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
+import io.mycat.buffer.NettyBufferPool;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
+import io.mycat.config.cluster.zk.ZkCluserStartUp;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
+import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
@@ -119,6 +121,9 @@ public class MycatServer {
 	private final RouteService routerService;
 	private final CacheService cacheService;
 	private Properties dnIndexProperties;
+	
+	// 集群启动实例
+	private ZkCluserStartUp cluserStartUp;
 	
 	//AIO连接群组
 	private AsynchronousChannelGroup[] asyncChannelGroups;
@@ -192,7 +197,8 @@ public class MycatServer {
 		routerService = new RouteService(cacheService);
 		
 		// load datanode active index from properties
-		dnIndexProperties = loadDnIndexProps();
+		// 延迟到加载datahost writeIndex 时执行 edit by dingw at 2018-05-02
+		// dnIndexProperties = loadDnIndexProps();
 		try {
 			//SQL解析器
 			sqlInterceptor = (SQLInterceptor) Class.forName(
@@ -461,14 +467,18 @@ public class MycatServer {
 		// init datahost
 		Map<String, PhysicalDBPool> dataHosts = config.getDataHosts();
 		LOGGER.info("Initialize dataHost ...");
-		for (PhysicalDBPool node : dataHosts.values()) {
-			String index = dnIndexProperties.getProperty(node.getHostName(),"0");
-			if (!"0".equals(index)) {
-				LOGGER.info("init datahost: " + node.getHostName() + "  to use datasource index:" + index);
+		
+		if(needSupportZKSwitchMode(dataHosts)) {
+			// 集群模式的启动逻辑，并加载writeIndex
+			cluserStartUp = new ZkCluserStartUp(dataHosts);
+			cluserStartUp.startup();
+		} else {
+			dnIndexProperties = loadDnIndexProps();
+			for (PhysicalDBPool node : dataHosts.values()) {
+				loadDatahostWriteIndexByLocal(node);
 			}
-			node.init(Integer.parseInt(index));
-			node.startHeartbeat();
 		}
+		
 		
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 
@@ -509,6 +519,42 @@ public class MycatServer {
 		initRuleData();
 
 		startup.set(true);
+	}
+	
+	/**
+	 * 是否需要支持 zk模式进行写节点切换
+	 * @param dataHosts
+	 * @return
+	 */
+	private boolean needSupportZKSwitchMode(Map<String, PhysicalDBPool> dataHosts) {
+		for (PhysicalDBPool node : dataHosts.values()) {
+			int switchMode = node.getSwitchMode();
+			if(switchMode == DataHostConfig.SWITCH_MODE_CLUSTER_ZK) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 加载datahost writeIndex,代码抽取自startup
+	 * @param node
+	 */
+	private void loadDatahostWriteIndexByLocal(PhysicalDBPool node) {
+		String index = dnIndexProperties.getProperty(node.getHostName(),"0");
+		if (!"0".equals(index)) {
+			LOGGER.info("init datahost: " + node.getHostName() + "  to use datasource index:" + index);
+		}
+		node.init(Integer.parseInt(index));
+		node.startHeartbeat();
+	}
+	
+	/**
+	 * 加载datahost writeIndex,代码根据loadDatahostWriteIndexByLocal 实现一个基于ZK
+	 * @param node
+	 */
+	private void loadDatahostWriteIndexByZk(PhysicalDBPool node) {
+		
 	}
 
 	public void initRuleData() {

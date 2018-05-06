@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Strings;
 
 import io.mycat.config.loader.zkprocess.zktoxml.ZktoXmlMain;
+import io.mycat.util.StringUtil;
 
 
 /**
@@ -31,6 +32,12 @@ public class ZkConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkConfig.class);
 
     private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
+    
+    private static final int DEFAULT_BASE_SLEEP_TIME = 1000;
+    private static final int DEFAULT_MAX_SLEEP_TIME = 3000;
+    private static final int DEFAULT_MAX_RETRIES = 3;
+    private static final int DEFAULT_SESSION_TIMEOUT = 60000;
+    private static final int DEFAULT_CONNECTION_TIMEOUT = 10000;
 
     private ZkConfig() {
     }
@@ -52,11 +59,6 @@ public class ZkConfig {
         ZKPROPERTIES = LoadMyidPropersites();
     }
 
-
-    public String getZkURL()
-    {
-        return ZKPROPERTIES==null?null:ZKPROPERTIES.getProperty(ZkParamCfg.ZK_CFG_URL.getKey())  ;
-    }
     public void initZk()
     {
         try {
@@ -126,6 +128,85 @@ public class ZkConfig {
         return pros;
 
     }
+    
+    /** 获取与ZK集群相关的属性 */
+    
+    public final String getZkNamespace() {
+    	return getValue(ZkParamCfg.ZK_NAMESPACE);
+    }
+    
+    public final String getZkURL() {
+    	return getValue(ZkParamCfg.ZK_CFG_URL);
+    }
+    
+    /**
+     * 获取
+     * @return
+     */
+    public final String getClusterId() {
+    	return getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
+    }
+    
+    /**
+     * 获取集群内当前实例Id
+     * @return
+     */
+    public final String getInstanceId() {
+    	return getValue(ZkParamCfg.ZK_CFG_MYID);
+    }
+    
+    /**
+     * 获取等待重试的间隔时间的初始值
+     * @return
+     */
+    public final int getBaseSleepTimeMilliseconds() {
+    	String str = getValue(ZkParamCfg.BASE_SLEEP_TIME_MILLISECONDS);
+    	return StringUtil.isEmpty(str) ? DEFAULT_BASE_SLEEP_TIME : Integer.parseInt(str);
+    }
+    
+    /**
+     * 等待重试的间隔时间的最大值 
+     * @return
+     */
+    public final int getMaxSleepTimeMilliseconds() {
+    	String str = getValue(ZkParamCfg.MAX_SLEEP_TIME_MILLISECONDS);
+    	return StringUtil.isEmpty(str) ? DEFAULT_MAX_SLEEP_TIME : Integer.parseInt(str);
+    }
+    
+    /**
+     * 最大重试次数
+     * @return
+     */
+    public final int getMaxRetries() {
+    	String str = getValue(ZkParamCfg.MAX_RETRIES);
+    	return StringUtil.isEmpty(str) ? DEFAULT_MAX_RETRIES : Integer.parseInt(str);
+    }
+    
+    /**
+     * 获取session过期时间
+     * @return
+     */
+    public final int getSessionTimeoutMilliseconds() {
+    	String str = getValue(ZkParamCfg.SESSION_TIMEOUT_MILLISECONDS);
+    	return StringUtil.isEmpty(str) ? DEFAULT_SESSION_TIMEOUT : Integer.parseInt(str);
+    }
+    
+    /**
+     * 连接超时时间
+     * @return
+     */
+    public final int getConnectionTimeoutMilliseconds() {
+    	String str = getValue(ZkParamCfg.CONNECTION_TIMEOUT_MILLISECONDS);
+    	return StringUtil.isEmpty(str) ? DEFAULT_CONNECTION_TIMEOUT : Integer.parseInt(str);
+    }
+    
+    /**
+     * 集群数量不从这里获取，实时从ZK服务器获取
+     * @return
+     */
+//    public final int getClusterSize() {
+//    	
+//    }
 
     public static void main(String[] args) {
         String zk = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);

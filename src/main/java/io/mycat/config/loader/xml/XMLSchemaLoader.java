@@ -52,6 +52,7 @@ import io.mycat.config.util.ConfigUtil;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.util.DecryptUtil;
 import io.mycat.util.SplitUtil;
+import io.mycat.util.StringUtil;
 
 /**
  * @author mycat
@@ -741,6 +742,15 @@ public class XMLSchemaLoader implements SchemaLoader {
 			 */
 			String switchTypeStr = element.getAttribute("switchType");
 			int switchType = switchTypeStr.equals("") ? -1 : Integer.parseInt(switchTypeStr);
+			
+			/**
+			 * 解析 switchMode：切换模式
+			 * 0:本地模式(默认)
+			 * 1:基于ZK集群模式切换
+			 */
+			String switchModeStr = element.getAttribute("switchMode");
+			int switchMode = StringUtil.isEmpty(switchModeStr) ? DataHostConfig.SWITCH_MODE_LOCAL : Integer.parseInt(switchModeStr);
+			
 			//读取从延迟界限
 			String slaveThresholdStr = element.getAttribute("slaveThreshold");
 			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer.parseInt(slaveThresholdStr);
@@ -802,7 +812,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 
 			DataHostConfig hostConf = new DataHostConfig(name, dbType, dbDriver, 
-					writeDbConfs, readHostsMap, switchType, slaveThreshold, tempReadHostAvailable);		
+					writeDbConfs, readHostsMap, switchType, switchMode, slaveThreshold, tempReadHostAvailable);		
 			
 			hostConf.setMaxCon(maxCon);
 			hostConf.setMinCon(minCon);

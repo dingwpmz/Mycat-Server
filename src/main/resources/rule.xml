@@ -9,6 +9,12 @@
 	under the License. -->
 <!DOCTYPE mycat:rule SYSTEM "rule.dtd">
 <mycat:rule xmlns:mycat="http://io.mycat/">
+	<tableRule name="ordder_id_mod">
+		<rule>
+			<columns>order_id</columns>
+			<algorithm>mod-long</algorithm>
+		</rule>
+	</tableRule>
 	<tableRule name="rule1">
 		<rule>
 			<columns>id</columns>
@@ -47,15 +53,9 @@
 			<algorithm>murmur</algorithm>
 		</rule>
 	</tableRule>
-	<tableRule name="crc32slot">
-		<rule>
-			<columns>id</columns>
-			<algorithm>crc32slot</algorithm>
-		</rule>
-	</tableRule>
 	<tableRule name="sharding-by-month">
 		<rule>
-			<columns>create_time</columns>
+			<columns>create_date</columns>
 			<algorithm>partbymonth</algorithm>
 		</rule>
 	</tableRule>
@@ -89,11 +89,6 @@
 		<!-- <property name="bucketMapPath">/etc/mycat/bucketMapPath</property> 
 			用于测试时观察各物理节点与虚拟节点的分布情况，如果指定了这个属性，会把虚拟节点的murmur hash值与物理节点的映射按行输出到这个文件，没有默认值，如果不指定，就不会输出任何东西 -->
 	</function>
-
-	<function name="crc32slot"
-			  class="io.mycat.route.function.PartitionByCRC32PreSlot">
-		<property name="count">2</property><!-- 要分片的数据库节点数量，必须指定，否则没法分片 -->
-	</function>
 	<function name="hash-int"
 		class="io.mycat.route.function.PartitionByFileMap">
 		<property name="mapFile">partition-hash-int.txt</property>
@@ -104,7 +99,7 @@
 	</function>
 	<function name="mod-long" class="io.mycat.route.function.PartitionByMod">
 		<!-- how many data nodes -->
-		<property name="count">3</property>
+		<property name="count">2</property>
 	</function>
 
 	<function name="func1" class="io.mycat.route.function.PartitionByLong">
